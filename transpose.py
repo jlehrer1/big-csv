@@ -30,16 +30,9 @@ if not os.path.isdir(os.path.join(here, 'chunks')):
     os.mkdir(os.path.join(here, 'chunks'))
 
 chunksizes = []
-for df in pd.read_csv(file, chunksize=chunksize):
-    print(f'Working on chunk {df}')
-    df = df.T
-    df.to_csv(os.path.join('chunks', f'{df}.tsv'), sep='\t', index=False)
 
-
-# for c in range(chunksize, lines, lines // chunksize):
-#     chunksizes.append(c)
-#     print(f'Chunk {c}')
-#     df = pd.read_csv(file, nrows=c, sep=sep)
-#     df = df.T
-#     df.to_csv(os.path.join('chunks', f'chunk_{c}.tsv'), sep='\t')
-
+for df, l in zip(pd.read_csv(file, sep='\t', chunksize=chunksize), range(0, lines // chunksize)): 
+    print(f'Working on chunk {l}')
+    print(f'Chunk {l} has shape {df.shape}')
+    df2 = df.T
+    df2.to_csv(os.path.join('chunks', f'{l}.csv'), sep=',', index=False)
