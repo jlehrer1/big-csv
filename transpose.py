@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as np 
 import os 
 import argparse
-import pathlib 
+import pathlib
 import subprocess
+import boto3
+from upload import upload 
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -34,5 +36,8 @@ chunksizes = []
 for df, l in zip(pd.read_csv(file, sep='\t', chunksize=chunksize), range(0, lines // chunksize)): 
     print(f'Working on chunk {l}')
     print(f'Chunk {l} has shape {df.shape}')
-    df2 = df.T
-    df2.to_csv(os.path.join('chunks', f'{l}.csv'), sep=',', index=False)
+    df = df.T
+    print(f'Writing chunk {l} to csv')
+    df.to_csv(os.path.join(here, 'chunks', f'{l}.csv'), sep=',', index=False)
+    print(f'Uploading chunk {l} to S3')
+    upload(os.path.join(here, 'chunks', f'{l}.csv'))

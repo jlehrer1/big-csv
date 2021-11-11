@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: transpose-organoid
+spec:
+  backoffLimit: 0
+  completions: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: transpose-organoid
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: transpose-organoid
+        image: jmlehrer/transpose:latest
+        command: ["stdbuf", "-i0", "-o0", "-e0", "bash", "-c"]
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        args: [
+          "gunzip organoid.tsv.gz \
+          python transpose.py -file organoid.tsv -chunksize=200 -sep='\t'\
+          ./combine.sh organoid_T \
+          python upload.py -file organoid_T.csv"]
+        resources:
+          limits:
+            memory: 100Gi
+            cpu: "24"
+          requests:
+            memory: 16Gi
+            cpu: "4"
+        volumeMounts:
+        - name: ephemeral
+          mountPath: "/data"
+      volumes:
+      - name: ephemeral
+        emptyDir: {}
