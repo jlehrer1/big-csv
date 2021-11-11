@@ -33,7 +33,7 @@ if not os.path.isdir(os.path.join(here, 'chunks')):
 
 chunksizes = []
 
-for df, l in zip(pd.read_csv(file, sep='\t', chunksize=chunksize), range(0, lines // chunksize)): 
+for df, l in zip(pd.read_csv(file, sep='\t', chunksize=chunksize), range(0, lines // chunksize + int(lines % chunksize == 0))):  # if we have one last small chunk or not 
     print(f'Working on chunk {l}')
     print(f'Chunk {l} has shape {df.shape}')
     df = df.T
