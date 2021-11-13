@@ -19,17 +19,17 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "1"
         args: [
-          "gunzip ${FILE}.tsv.gz \
-          python transpose.py -file ${FILE}.tsv -chunksize=200 -sep='\t'\
-          ./combine.sh ${FILE}_T \
-          python upload.py -file ${FILE}_T.csv"]
+          "gunzip ${FILE}.tsv.gz && \
+          python transpose.py -file ${FILE}.tsv -chunksize=200 -sep='\t' && \
+          ./combine.sh ${FILE}_T && \
+          python upload_helper.py -file ${FILE}_T.csv"]
         resources:
           limits:
             memory: 100Gi
             cpu: "24"
           requests:
-            memory: 16Gi
-            cpu: "4"
+            memory: 32Gi
+            cpu: "8"
         volumeMounts:
         - name: ephemeral
           mountPath: "/data"
