@@ -4,10 +4,6 @@ import os
 import argparse
 
 # Defines upload function and uploades combined data after all chunks are generated
-parser = argparse.ArgumentParser(description='Upload the combined chunks. Also a helper file that defines our upload function')
-parser.add_argument('-file', metavar='F', type=str, help='Path to the input file')
-args = parser.parse_args()
-file = args.file
 
 s3 = boto3.resource(
     's3',
@@ -25,7 +21,12 @@ def upload(file_name, remote_name=None):
         Key=os.path.join('jlehrer', 'transposed_data', remote_name)
     )
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Upload the combined chunks. Also a helper file that defines our upload function')
 
-here = pathlib.Path(__file__).parent.resolve()
+    parser.add_argument('-file', metavar='F', type=str, help='Path to the input file')
+    args = parser.parse_args()
+    file = args.file
 
-upload(os.path.join(here, f'{file}'))
+    here = pathlib.Path(__file__).parent.resolve()
+    upload(os.path.join(here, f'{file}'), f'{file}')

@@ -1,3 +1,6 @@
 organoid.tsv
+primary.tsv
+__pycache__/*
 chunks/*
 *.gz
+
