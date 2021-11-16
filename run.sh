@@ -1,5 +1,8 @@
-FILE=organoid
+#!/bin/bash
+
+export FILE=organoid
 envsubst < run.yaml | kubectl create -f -
 
-FILE=primary
+export FILE=primary
 envsubst < run.yaml | kubectl create -f -
+
