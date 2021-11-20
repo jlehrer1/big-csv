@@ -22,7 +22,9 @@ def upload(file_name, remote_name=None):
     )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Upload the combined chunks. Also a helper file that defines our upload function')
+    parser = argparse.ArgumentParser(
+        description='Upload the file passed in the -file argument. Also a helper file that defines our upload function'
+    )
 
     parser.add_argument('-file', metavar='F', type=str, help='Path to the input file')
     args = parser.parse_args()

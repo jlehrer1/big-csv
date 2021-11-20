@@ -4,9 +4,8 @@ import os
 import argparse
 import pathlib
 import subprocess
-import boto3 
-
-from upload_helper import upload 
+import boto3
+from upload_helper import upload
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -58,4 +57,11 @@ for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, lines
     df = df.T
 
     print(f'Writing chunk {l} to csv')
-    df.to_csv(os.path.join(here, 'chunks', f'{l}_{file[:-4]}.csv'), sep=',')
+    df.to_csv(os.path.join(here, 'chunks', f'{file[:-4]}_{l}.csv'), sep=',')
+
+    print(f'Uploading chunk {l} to S3')
+    
+    upload(
+        os.path.join(here, 'chunks', f'{file[:-4]}_{l}.csv'),  #file name
+        os.path.join('chunks', f'{file[:-4]}_{l}.csv') #remote name
+    )
