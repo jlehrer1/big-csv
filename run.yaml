@@ -19,7 +19,8 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "1"
         args: [
-          "gunzip ${FILE}.tsv.gz && \
+          "python download.py && \
+          gunzip ${FILE}.tsv.gz && \
           python transpose.py -file ${FILE}.tsv -chunksize=200 -sep='\t' && \
           ./combine.sh ${FILE}_T && \
           python upload_helper.py -file ${FILE}_T.csv"]

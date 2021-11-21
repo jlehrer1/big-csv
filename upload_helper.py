@@ -4,7 +4,6 @@ import os
 import argparse
 
 # Defines upload function and uploades combined data after all chunks are generated
-
 s3 = boto3.resource(
     's3',
     endpoint_url="https://s3.nautilus.optiputer.net",

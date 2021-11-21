@@ -4,7 +4,6 @@ import os
 import argparse
 import pathlib
 import subprocess
-import boto3
 from upload_helper import upload
 
 here = pathlib.Path(__file__).parent.resolve()
