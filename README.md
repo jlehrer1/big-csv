@@ -7,7 +7,7 @@ It works in the following way:
 1. Read in chunks that fit in memory
 2. Transpose those in memory (which is fast)
 3. Write each transposed chunk to a `.np` file
-4. Use `paste` to join the files horizontally (columnwise)
+4. Use `paste` to join the files horizontally (columnwise), this is why we don't need to save the index, since it will be the same as the columns of the original file. 
 
 This process outputs the $m \times p$ matrix, as desired. 
 

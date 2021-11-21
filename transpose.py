@@ -18,8 +18,8 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-chunksize', 
-    type=int, 
+    '-chunksize',
+    type=int,
     help='Chunksize to use, equivalently, number of rows to read into memory at once.', 
     required=True
 )
@@ -57,10 +57,9 @@ for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, lines
     df = df.T
 
     print(f'Writing chunk {l} to csv')
-    df.to_csv(os.path.join(here, 'chunks', f'{file[:-4]}_{l}.csv'), sep=',')
+    df.to_csv(os.path.join(here, 'chunks', f'{file[:-4]}_{l}.csv'), sep=',', index=False)
 
     print(f'Uploading chunk {l} to S3')
-    
     upload(
         os.path.join(here, 'chunks', f'{file[:-4]}_{l}.csv'),  #file name
         os.path.join('chunks', f'{file[:-4]}_{l}.csv') #remote name
