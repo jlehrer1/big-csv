@@ -1,18 +1,18 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: transpose-${FILE}
+  name: transpose-${FILE}-sep-400
 spec:
   backoffLimit: 0
   completions: 1
   template:
     metadata:
       labels:
-        k8s-app: transpose-${FILE}
+        k8s-app: transpose-${FILE}-sep-400
     spec:
       restartPolicy: Never
       containers:
-      - name: transpose-${FILE}
+      - name: transpose-${FILE}-sep-400
         image: jmlehrer/transpose:latest
         command: ["stdbuf", "-i0", "-o0", "-e0", "bash", "-c"]
         env:
@@ -21,7 +21,7 @@ spec:
         args: [
           "python download.py && \
           gunzip ${FILE}.tsv.gz && \
-          python transpose.py -file ${FILE}.tsv -chunksize=200 -sep='\t' && \
+          python transpose.py -file ${FILE}.tsv -chunksize=400 -sep='\t' && \
           ./combine.sh ${FILE}_T && \
           python upload_helper.py -file ${FILE}_T.csv"]
         resources:
@@ -29,7 +29,7 @@ spec:
             memory: 100Gi
             cpu: "24"
           requests:
-            memory: 32Gi
+            memory: 64Gi
             cpu: "4"
         volumeMounts:
         - name: ephemeral

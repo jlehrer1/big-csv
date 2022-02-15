@@ -11,4 +11,4 @@ It works in the following way:
 
 This process outputs the $m \times p$ matrix, as desired. 
 
-To run, run `./run.sh`. Examine the `run.yaml` file to get started. The file name is passed in using `envsubst` which is defined as `FILE` in run.sh.
+To run, run `./run.sh`. Examine the `run.yaml` file. The file name is passed in using `envsubst` which is defined as `FILE` in run.sh. `download.py` defines a dictionary for `url : local file name`, and then downloads those files. 
