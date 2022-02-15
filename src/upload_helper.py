@@ -4,11 +4,14 @@ import os
 import argparse
 
 # Defines upload function and uploades combined data after all chunks are generated
+with open(os.path.join(here, '..', 'credentials')) as f:
+    key, access = [line.strip for line in f.readlines()]
+print(key, access)
 s3 = boto3.resource(
     's3',
     endpoint_url="https://s3.nautilus.optiputer.net",
-    aws_access_key_id="EFIE1S59OR5CHDC4KCHK",
-    aws_secret_access_key="DRXgeKsTLctfFX9udqfT04go8JpxG3qWxj0OKHVU",
+    aws_access_key_id=key,
+    aws_secret_access_key=access,
 )
    
 def upload(file_name, remote_name=None):

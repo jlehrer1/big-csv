@@ -3,3 +3,5 @@ primary.tsv*
 __pycache__/*
 chunks/*
 *.gz
+*.csv
+credentials
