@@ -92,41 +92,40 @@ def transpose_file(
     outfile_name = outfile.split('/')[-1][:-4] # takes /path/to/file.csv --> file 
     print(f'File has {lines} lines and chunksize is {chunksize}')
 
-    if not os.path.isdir(os.path.join(here, 'chunks')):
+    chunkfolder = f'chunks_{outfile_name}'
+    if not os.path.isdir(os.path.join(here, chunkfolder)):
         print('Making chunk folder')
-        os.mkdir(os.path.join(here, 'chunks'))
+        os.mkdir(os.path.join(here, chunkfolder))
 
     num_chunks = lines // chunksize + int(lines % chunksize == 0) # if we have one last small chunk or not 
     print(f'Total number of chunks is {num_chunks}')
-    
     for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, num_chunks + 1)):  
         if not quiet: print(f'Working on chunk {l} out of {num_chunks}')
         df = df.T
 
         if not quiet: print(f'Writing chunk {l} to csv')
-        df.to_csv(os.path.join(here, 'chunks', f'{outfile_name}_{l}.csv'), sep=',', index=False)
+        df.to_csv(os.path.join(here, chunkfolder, f'{outfile_name}_{l}.csv'), sep=',', index=False)
 
         if to_upload:
             if not quiet: print(f'Uploading chunk {l} to S3')
             upload(
-                file_name=os.path.join(here, 'chunks', f'{outfile_name}_{l}.csv'),  #file name
+                file_name=os.path.join(here, chunkfolder, f'{outfile_name}_{l}.csv'),  #file name
                 credential_file=credentials_file,
-                remote_name=os.path.join('chunks', f'{outfile_name}_{l}.csv') #remote name
+                remote_name=os.path.join(chunkfolder, f'{outfile_name}_{l}.csv') #remote name
             )
 
     if not quiet: print('Combining chunks')
-    if not quiet: print(f'here is {here}, outfile is {outfile}')
-    if not quiet: print(f"Chunkfolder is {os.path.join(here, 'chunks' )}")
 
     os.system(
-        f"ls {here}/chunks && \
-        paste -d ',' {here}/chunks/* > {outfile} "
+        f"ls {os.path.join(here, chunkfolder)} && \
+        paste -d ',' {os.path.join(here, chunkfolder)}/* > {outfile} "
     )
 
     print('Finished combining chunks, deleting chunks')
     os.system(
-        f'rm -rf {here}/chunks/*'
+        f'rm -rf {os.path.join(here, chunkfolder)}/*'
     )
+
     print('Done.')
 
 if __name__ == "__main__":
