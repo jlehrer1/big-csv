@@ -6,7 +6,8 @@ import argparse
 import pathlib
 import subprocess
 from tqdm import tqdm
-from upload_helper import upload
+
+from .upload_helper import upload
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -65,6 +66,8 @@ def transpose_file(
     Returns:
     None
     """
+
+    # First, get the number of lines in the file (total number we have to process)
     process = subprocess.Popen('wc -l {}'.format(file).split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
     output = output.strip().decode('UTF-8')
@@ -78,10 +81,10 @@ def transpose_file(
         print('Making chunk folder')
         os.mkdir(os.path.join(here, 'chunks'))
 
-    num_chunks = lines // chunksize + int(lines % chunksize == 0)
+    num_chunks = lines // chunksize + int(lines % chunksize == 0) # if we have one last small chunk or not 
     print(f'Total number of chunks is {num_chunks}')
     
-    for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, num_chunks)):  # if we have one last small chunk or not 
+    for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, num_chunks + 1)):  
         print(f'Working on chunk {l}')
         print(f'Chunk {l} before transpose has shape {df.shape}')
         df = df.T
@@ -99,9 +102,14 @@ def transpose_file(
             )
 
     print('Combining chunks')
+    print(f'here is {here}, outfile is {outfile}')
+    print(f"Chunkfolder is {os.path.join(here, 'chunks' )}")
+
     os.system(
-        f"paste -d ',' {here}/chunks/* > {outfile} && \
-        tail -n +2 {outfile} > {outfile}"
+        f"ls {here}/chunks && \
+        paste -d ',' {here}/chunks/* > {outfile} && \
+        tail -n +2 {outfile} > temp && \
+        mv temp {outfile}"
     )
 
     print('Finished combining chunks, deleting chunks')

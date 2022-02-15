@@ -1,4 +1,4 @@
-from transpose import transpose_file
+from .transpose import transpose_file
 
 class Transpose:
     def __init__(
@@ -7,7 +7,7 @@ class Transpose:
         outfile: str, 
         sep: str=',', 
         chunksize: str=400, 
-        credentials_file: str=None, 
+        credentials_file: str=None,
         to_upload: bool=False, 
     ):
         self.file = file 
@@ -23,6 +23,7 @@ class Transpose:
             outfile=self.outfile,
             sep=self.sep,
             chunksize=self.chunksize,
-            to_upload=self.to_upload 
+            to_upload=self.to_upload,
+            credentials_file=self.credentials_file,
         )
         
