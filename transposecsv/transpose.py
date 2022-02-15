@@ -117,8 +117,7 @@ def transpose_file(
     if not quiet: print('Combining chunks')
 
     os.system(
-        f"ls {os.path.join(here, chunkfolder)} && \
-        paste -d ',' {os.path.join(here, chunkfolder)}/* > {outfile} "
+        f"paste -d ',' {os.path.join(here, chunkfolder)}/* > {outfile}"
     )
 
     print('Finished combining chunks, deleting chunks')

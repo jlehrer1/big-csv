@@ -14,6 +14,8 @@ rand = pd.DataFrame(rand)
 
 rand.to_csv(os.path.join(here, 'test.csv'), index=False)
 
+rand = rand.T.reset_index(drop=True)
+
 print('Running transpose')
 trans = Transpose(
     file=os.path.join(here, 'test.csv'),
@@ -25,6 +27,8 @@ trans.compute()
 print('Reading in transpose')
 
 transpose = pd.read_csv(os.path.join(here, 'test_T.csv'))
-print(transpose.shape, rand.T.shape)
+transpose.columns = pd.RangeIndex(0, len(transpose.columns))
 
-print(f'Transposed == direct transpose: {transpose.equals(rand.T.reset_index(drop=True))}')
+print('Shapes are', transpose.shape, rand.shape)
+
+print(f'Transposed == direct transpose: {transpose.equals(rand)}')
