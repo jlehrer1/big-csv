@@ -14,7 +14,7 @@ requirements = [
 
 setup_requirements = requirements.copy()
 
-test_requirements = [ ]
+test_requirements = []
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
