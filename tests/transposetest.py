@@ -11,6 +11,7 @@ here = pathlib.Path(__file__).parent.resolve()
 print('Generating test DataFrame')
 rand = np.ones([500, 1000])
 rand = pd.DataFrame(rand)
+
 rand.to_csv(os.path.join(here, 'test.csv'), index=False)
 
 print('Running transpose')
@@ -24,4 +25,6 @@ trans.compute()
 print('Reading in transpose')
 
 transpose = pd.read_csv(os.path.join(here, 'test_T.csv'))
-print(f'Transposed == direct transpose: {transpose.equals(rand.T)}')
+print(transpose.shape, rand.T.shape)
+
+print(f'Transposed == direct transpose: {transpose.equals(rand.T.reset_index(drop=True))}')

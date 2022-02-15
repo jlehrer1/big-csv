@@ -5,13 +5,18 @@ import os
 import argparse
 import pathlib
 import subprocess
-from tqdm import tqdm
 
 from .upload_helper import upload
 
 here = pathlib.Path(__file__).parent.resolve()
 
 def generate_parser(): 
+    """
+    Generates argparser, if this file is being run as a script. 
+
+    Returns:
+    argparse.ArgumentParser
+    """
     parser = argparse.ArgumentParser(description='Calculate the transpose of a large file')
     parser.add_argument(
         '--file', 
@@ -42,6 +47,14 @@ def generate_parser():
         action=argparse.BooleanOptionalAction,
     )
 
+    parser.add_argument(
+        '--outfile',
+        type=str,
+        help='Path to outfile',
+        required=False,
+        default=None
+    )
+
     return parser
 
 def transpose_file(
@@ -51,6 +64,7 @@ def transpose_file(
     chunksize: int, 
     credentials_file: str, 
     to_upload: bool,
+    quiet=bool, 
 ) -> None:
     """
     Calculates the transpose of a .csv too large to fit in memory 
@@ -62,6 +76,7 @@ def transpose_file(
     chunksize: Number of lines per iteration
     credentials_file: Path to S3 credentials file, in the case where we upload chunks and final tranposed file 
     to_upload: Boolean indicating whether or not to upload to S3
+    quiet: Boolean indicating whether to print progress or not 
 
     Returns:
     None
@@ -85,31 +100,27 @@ def transpose_file(
     print(f'Total number of chunks is {num_chunks}')
     
     for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, num_chunks + 1)):  
-        print(f'Working on chunk {l}')
-        print(f'Chunk {l} before transpose has shape {df.shape}')
+        if not quiet: print(f'Working on chunk {l} out of {num_chunks}')
         df = df.T
-        print(f'Chunk {l} after transpose has shape {df.shape}')
 
-        print(f'Writing chunk {l} to csv')
+        if not quiet: print(f'Writing chunk {l} to csv')
         df.to_csv(os.path.join(here, 'chunks', f'{outfile_name}_{l}.csv'), sep=',', index=False)
 
         if to_upload:
-            print(f'Uploading chunk {l} to S3')
+            if not quiet: print(f'Uploading chunk {l} to S3')
             upload(
                 file_name=os.path.join(here, 'chunks', f'{outfile_name}_{l}.csv'),  #file name
                 credential_file=credentials_file,
                 remote_name=os.path.join('chunks', f'{outfile_name}_{l}.csv') #remote name
             )
 
-    print('Combining chunks')
-    print(f'here is {here}, outfile is {outfile}')
-    print(f"Chunkfolder is {os.path.join(here, 'chunks' )}")
+    if not quiet: print('Combining chunks')
+    if not quiet: print(f'here is {here}, outfile is {outfile}')
+    if not quiet: print(f"Chunkfolder is {os.path.join(here, 'chunks' )}")
 
     os.system(
         f"ls {here}/chunks && \
-        paste -d ',' {here}/chunks/* > {outfile} && \
-        tail -n +2 {outfile} > temp && \
-        mv temp {outfile}"
+        paste -d ',' {here}/chunks/* > {outfile} "
     )
 
     print('Finished combining chunks, deleting chunks')
@@ -126,6 +137,6 @@ if __name__ == "__main__":
     chunksize = args.chunksize 
     sep = args.sep
     to_upload = args.upload 
-    outfile = file.split('/')[-1][:-4] # if not in local path, just get the file name 
+    outfile = (file if args.outfile is None else args.outfile) 
 
     transpose_file(file, outfile, sep, chunksize, to_upload)

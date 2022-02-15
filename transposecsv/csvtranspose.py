@@ -9,6 +9,7 @@ class Transpose:
         chunksize: str=400, 
         credentials_file: str=None,
         to_upload: bool=False, 
+        quiet: bool=False,
     ):
         self.file = file 
         self.outfile = outfile
@@ -16,6 +17,7 @@ class Transpose:
         self.chunksize = chunksize
         self.credentials_file = credentials_file
         self.to_upload = to_upload
+        self.quiet = quiet
 
     def compute(self):
         transpose_file(
@@ -25,5 +27,6 @@ class Transpose:
             chunksize=self.chunksize,
             to_upload=self.to_upload,
             credentials_file=self.credentials_file,
+            quiet=self.quiet
         )
         
