@@ -1,5 +1,4 @@
-# Transpose csv
-A small Python library to transpose large csv files that can't fit in memory. 
+# transposecsv: A small Python library to transpose large csv files that can't fit in memory. 
 
 Suppose you have an `p x m` matrix where your original data is `m` points samples with `p` features, or in `m` points in `p` dimensional space. Then we want the column space to be the features, that is, we'd like to consider the `m x p` data matrix. This small library is for performing this calculation on arbitrarily large csv files.
 
@@ -10,6 +9,10 @@ It works in the following way:
 4. Use `paste` to join the files horizontally (columnwise), this is why we don't need to save the index, since it will be the same as the columns of the original file. 
 
 This process outputs the `m x p` matrix, as desired. This is particularly useful for single-cell data, where expression matrices are often uploaded genewise, but you may want to work with machine learning models that learn cellwise :). 
+
+## Installation
+
+To install, run `python -m pip install https://github.com/jlehrer1/transpose-csv`
 
 ## How to use  
 The transpose operation is contained in a lazily-loaded `Transpose` class, so the transpose operation isn't started on initialization. For example, to transpose a local file without uploading to S3, one would use 
