@@ -12,7 +12,7 @@ This process outputs the `m x p` matrix, as desired. This is particularly useful
 
 ## Installation
 
-To install, run `python -m pip install https://github.com/jlehrer1/transpose-csv`
+To install, run `pip install transposecsv`
 
 ## How to use  
 The transpose operation is contained in a lazily-loaded `Transpose` class, so the transpose operation isn't started on initialization. For example, to transpose a local file without uploading to S3, one would use 
