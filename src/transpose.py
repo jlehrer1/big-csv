@@ -43,9 +43,17 @@ def generate_parser():
 
     return parser
 
-def transpose_file(file, write_path, sep, chunksize, to_upload=False):
+def transpose_file(
+    file: str, 
+    write_path: str, 
+    sep: str, 
+    chunksize: int, 
+    credentials_file, 
+    to_upload: bool,
+) -> None:
     process = subprocess.Popen('wc -l {}'.format(file).split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
+    print(error)
     output = output.strip().decode('UTF-8')
 
     lines = int(output.split(' ')[0])
@@ -55,7 +63,10 @@ def transpose_file(file, write_path, sep, chunksize, to_upload=False):
         print('Making chunk folder')
         os.mkdir(os.path.join(here, 'chunks'))
 
-    for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, lines // chunksize + int(lines % chunksize == 0))):  # if we have one last small chunk or not 
+    num_chunks = lines // chunksize + int(lines % chunksize == 0)
+    print(f'Total number of chunks is {num_chunks}')
+    
+    for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, num_chunks)):  # if we have one last small chunk or not 
         print(f'Working on chunk {l}')
         print(f'Chunk {l} before transpose has shape {df.shape}')
         df = df.T
@@ -64,19 +75,20 @@ def transpose_file(file, write_path, sep, chunksize, to_upload=False):
         print(f'Writing chunk {l} to csv')
         df.to_csv(os.path.join(here, 'chunks', f'{write_path}_{l}.csv'), sep=',', index=False)
 
-        print(f'Uploading chunk {l} to S3')
-
         if to_upload:
+            print(f'Uploading chunk {l} to S3')
             upload(
-                os.path.join(here, 'chunks', f'{write_path}_{l}.csv'),  #file name
-                os.path.join('chunks', f'{write_path}_{l}.csv') #remote name
+                file_name=os.path.join(here, 'chunks', f'{write_path}_{l}.csv'),  #file name
+                credential_file=credentials_file,
+                remote_name=os.path.join('chunks', f'{write_path}_{l}.csv') #remote name
             )
 
     print('Combining chunks')
+    outpath = os.path.join(here, write_path)
     os.system(
-        f"paste -d ',' {here}/chunks/* > {here}{write_path}.csv && \
-        tail -n +2 {write_path}.csv > {write_path}_clipped.csv && \
-        mv {write_path}_clipped.csv {write_path}.csv"
+        f"paste -d ',' {here}/chunks/* > {outpath}.csv && \
+        tail -n +2 {write_path}.csv > {outpath}_clipped.csv && \
+        mv {write_path}_clipped.csv {outpath}.csv"
     )
 
 if __name__ == "__main__":
