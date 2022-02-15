@@ -45,18 +45,33 @@ def generate_parser():
 
 def transpose_file(
     file: str, 
-    write_path: str, 
+    outfile: str, 
     sep: str, 
     chunksize: int, 
-    credentials_file, 
+    credentials_file: str, 
     to_upload: bool,
 ) -> None:
+    """
+    Calculates the transpose of a .csv too large to fit in memory 
+
+    Parameters:
+    file: Path to input file 
+    outfile: Path to output file (transposed input file)
+    sep: Separator for .csv, by default is ,
+    chunksize: Number of lines per iteration
+    credentials_file: Path to S3 credentials file, in the case where we upload chunks and final tranposed file 
+    to_upload: Boolean indicating whether or not to upload to S3
+
+    Returns:
+    None
+    """
     process = subprocess.Popen('wc -l {}'.format(file).split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
-    print(error)
     output = output.strip().decode('UTF-8')
-
     lines = int(output.split(' ')[0])
+
+    # Get just the outfile name for writing chunks
+    outfile_name = outfile.split('/')[-1][:-4] # takes /path/to/file.csv --> file 
     print(f'File has {lines} lines and chunksize is {chunksize}')
 
     if not os.path.isdir(os.path.join(here, 'chunks')):
@@ -73,23 +88,27 @@ def transpose_file(
         print(f'Chunk {l} after transpose has shape {df.shape}')
 
         print(f'Writing chunk {l} to csv')
-        df.to_csv(os.path.join(here, 'chunks', f'{write_path}_{l}.csv'), sep=',', index=False)
+        df.to_csv(os.path.join(here, 'chunks', f'{outfile_name}_{l}.csv'), sep=',', index=False)
 
         if to_upload:
             print(f'Uploading chunk {l} to S3')
             upload(
-                file_name=os.path.join(here, 'chunks', f'{write_path}_{l}.csv'),  #file name
+                file_name=os.path.join(here, 'chunks', f'{outfile_name}_{l}.csv'),  #file name
                 credential_file=credentials_file,
-                remote_name=os.path.join('chunks', f'{write_path}_{l}.csv') #remote name
+                remote_name=os.path.join('chunks', f'{outfile_name}_{l}.csv') #remote name
             )
 
     print('Combining chunks')
-    outpath = os.path.join(here, write_path)
     os.system(
-        f"paste -d ',' {here}/chunks/* > {outpath}.csv && \
-        tail -n +2 {write_path}.csv > {outpath}_clipped.csv && \
-        mv {write_path}_clipped.csv {outpath}.csv"
+        f"paste -d ',' {here}/chunks/* > {outfile} && \
+        tail -n +2 {outfile} > {outfile}"
     )
+
+    print('Finished combining chunks, deleting chunks')
+    os.system(
+        f'rm -rf {here}/chunks/*'
+    )
+    print('Done.')
 
 if __name__ == "__main__":
     parser = generate_parser()
@@ -99,6 +118,6 @@ if __name__ == "__main__":
     chunksize = args.chunksize 
     sep = args.sep
     to_upload = args.upload 
-    write_path = file.split('/')[-1][:-4] # if not in local path, just get the file name 
+    outfile = file.split('/')[-1][:-4] # if not in local path, just get the file name 
 
-    transpose_file(file, write_path, sep, chunksize, to_upload)
+    transpose_file(file, outfile, sep, chunksize, to_upload)

@@ -1,18 +1,17 @@
-from os import sep
 from transpose import transpose_file
 
 class Transpose:
     def __init__(
         self, 
         file: str, 
-        write_path: str, 
+        outfile: str, 
         sep: str=',', 
         chunksize: str=400, 
         credentials_file: str=None, 
         to_upload: bool=False, 
     ):
         self.file = file 
-        self.write_path = write_path
+        self.outfile = outfile
         self.sep = sep 
         self.chunksize = chunksize
         self.credentials_file = credentials_file
@@ -21,7 +20,7 @@ class Transpose:
     def compute(self):
         transpose_file(
             file=self.file,
-            write_path=self.write_path,
+            outfile=self.outfile,
             sep=self.sep,
             chunksize=self.chunksize,
             to_upload=self.to_upload 
