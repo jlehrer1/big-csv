@@ -19,7 +19,7 @@ rand = rand.T.reset_index(drop=True)
 print('Running transpose')
 trans = Transpose(
     file=os.path.join(here, 'test.csv'),
-    outfile=os.path.join(here, 'test_T.csv'),
+    outfile=os.path.join(here, 'testfolder/test_T.csv'),
     chunksize=100,
 )
 

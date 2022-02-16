@@ -90,7 +90,7 @@ def transpose_file(
 
     # Get just the outfile name for writing chunks
     outfile_name = outfile.split('/')[-1][:-4] # takes /path/to/file.csv --> file 
-    print(f'File has {lines} lines and chunksize is {chunksize}')
+    print(f'{file} has {lines} lines and chunksize is {chunksize}')
 
     chunkfolder = f'chunks_{outfile_name}'
     if not os.path.isdir(os.path.join(here, chunkfolder)):
@@ -114,13 +114,14 @@ def transpose_file(
                 remote_name=os.path.join(chunkfolder, f'{outfile_name}_{l}.csv') #remote name
             )
 
-    if not quiet: print('Combining chunks')
+    if not quiet: print(f'Combining chunks into {outfile}')
 
     os.system(
         f"paste -d ',' {os.path.join(here, chunkfolder)}/* > {outfile}"
     )
 
-    print('Finished combining chunks, deleting chunks')
+    print('Finished combining chunks, deleting chunks.')
+
     os.system(
         f'rm -rf {os.path.join(here, chunkfolder)}/*'
     )
