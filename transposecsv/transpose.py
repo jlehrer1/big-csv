@@ -60,7 +60,8 @@ def generate_parser():
 def transpose_file(
     file: str, 
     outfile: str, 
-    sep: str, 
+    insep: str, 
+    outsep: str,
     chunksize: int, 
     credentials_file: str, 
     to_upload: bool,
@@ -99,12 +100,12 @@ def transpose_file(
 
     num_chunks = lines // chunksize + int(lines % chunksize == 0) # if we have one last small chunk or not 
     print(f'Total number of chunks is {num_chunks}')
-    for df, l in zip(pd.read_csv(file, sep=sep, chunksize=chunksize), range(0, num_chunks + 1)):  
+    for df, l in zip(pd.read_csv(file, sep=insep, chunksize=chunksize), range(0, num_chunks + 1)):  
         if not quiet: print(f'Working on chunk {l} out of {num_chunks}')
         df = df.T
 
         if not quiet: print(f'Writing chunk {l} to csv')
-        df.to_csv(os.path.join(here, chunkfolder, f'{outfile_name}_{l}.csv'), sep=',', index=False)
+        df.to_csv(os.path.join(here, chunkfolder, f'{outfile_name}_{l}.csv'), sep=outsep, index=False)
 
         if to_upload:
             if not quiet: print(f'Uploading chunk {l} to S3')
