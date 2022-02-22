@@ -65,6 +65,7 @@ def transpose_file(
     chunksize: int, 
     credentials_file: str, 
     to_upload: bool,
+    save_chunks: bool,
     quiet=bool, 
 ) -> None:
     """
@@ -84,59 +85,52 @@ def transpose_file(
     """
 
     # First, get the number of lines in the file (total number we have to process)
-    process = subprocess.Popen('wc -l {}'.format(file).split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
-    output = output.strip().decode('UTF-8')
-    lines = int(output.split(' ')[0])
+    with open(file) as f:
+        lines = len(f.readlines())
+    
+    if not quiet: print(f'Number of lines to process is {lines}')
 
     # Get just the outfile name for writing chunks
-    outfile_name = outfile.split('/')[-1][:-4] # takes /path/to/file.csv --> file 
-    print(f'{file} has {lines} lines and chunksize is {chunksize}')
+    outfile_split = outfile.split('/')
+    outfile_name = outfile_split[-1][:-4] # takes /path/to/file.csv --> file 
 
-    chunkfolder = f'chunks_{outfile_name}'
-    if not os.path.isdir(os.path.join(here, chunkfolder)):
-        print('Making chunk folder')
-        os.mkdir(os.path.join(here, chunkfolder))
+    if len(outfile_split) == 1: # as in there was no /path/to/file.csv, just file.csv
+        chunkfolder = f'chunks_{outfile_name}'
+    else:
+        outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
+        chunkfolder = os.path.join(outfile_path, f'chunks_{outfile_name}')
+
+    if not os.path.isdir(chunkfolder):
+        if not quiet: print(f'Making chunk folder {chunkfolder = }')
+        os.mkdir(chunkfolder)
 
     num_chunks = lines // chunksize + int(lines % chunksize == 0) # if we have one last small chunk or not 
-    print(f'Total number of chunks is {num_chunks}')
+    if not quiet: print(f'Total number of chunks is {num_chunks}')
+
     for df, l in zip(pd.read_csv(file, sep=insep, chunksize=chunksize), range(0, num_chunks + 1)):  
         if not quiet: print(f'Working on chunk {l} out of {num_chunks}')
         df = df.T
 
         if not quiet: print(f'Writing chunk {l} to csv')
-        df.to_csv(os.path.join(here, chunkfolder, f'{outfile_name}_{l}.csv'), sep=outsep, index=False)
+        df.to_csv(os.path.join(chunkfolder, f'{outfile_name}_{l}.csv'), sep=outsep, index=False)
 
         if to_upload:
             if not quiet: print(f'Uploading chunk {l} to S3')
             upload(
-                file_name=os.path.join(here, chunkfolder, f'{outfile_name}_{l}.csv'),  #file name
+                file_name=os.path.join(chunkfolder, f'{outfile_name}_{l}.csv'),  #file name
                 credential_file=credentials_file,
                 remote_name=os.path.join(chunkfolder, f'{outfile_name}_{l}.csv') #remote name
             )
 
-    if not quiet: print(f'Combining chunks into {outfile}')
-
+    if not quiet: print(f'Combining chunks from {chunkfolder} into {outfile}')
     os.system(
-        f"paste -d ',' {os.path.join(here, chunkfolder)}/* > {outfile}"
+        f"paste -d ',' {chunkfolder}/* > {outfile}"
     )
 
-    print('Finished combining chunks, deleting chunks.')
+    if not save_chunks:
+        if not quiet: print('Finished combining chunks, deleting chunks.')
+        os.system(
+            f'rm -rf {chunkfolder}/*'
+        )
 
-    os.system(
-        f'rm -rf {os.path.join(here, chunkfolder)}/*'
-    )
-
-    print('Done.')
-
-if __name__ == "__main__":
-    parser = generate_parser()
-    args = parser.parse_args()
-
-    file = args.file
-    chunksize = args.chunksize 
-    sep = args.sep
-    to_upload = args.upload 
-    outfile = (file if args.outfile is None else args.outfile) 
-
-    transpose_file(file, outfile, sep, chunksize, to_upload)
+    if not quiet: print('Done.')
