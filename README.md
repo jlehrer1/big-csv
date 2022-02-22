@@ -15,7 +15,7 @@ This process outputs the `m x p` matrix, as desired. This is particularly useful
 To install, run `pip install transposecsv`
 
 ## How to use  
-The transpose operation is contained in a lazily-loaded `Transpose` class, so the transpose operation isn't started on initialization. For example, to transpose a local file without uploading to S3, one would use 
+The transpose operation is contained in a lazily-loaded `Transpose` class, so the transpose operation isn't started on initialization. For example:
 
 ```python
 from transposecsv import Transpose 
@@ -25,10 +25,23 @@ transpose = Transpose(
     write_path='massive_dataset_T.csv',
     chunksize=400, # Number of rows to read in at each iteration
     # leave as default
-    # sep=',',
-    # credentials_file='s3_credentials.txt`,
-    # to_upload=False
+    # insep=',', 
+    # outsep=',',
+    # chunksize=400, 
+    # save_chunks=False,
+    # quiet=False,
 )
 
 transpose.compute()
+```
+
+Then to upload to S3, we would run 
+```python
+tranpose.upload(
+    bucket='braingeneersdev',
+    endpoint_url='https://s3.nautilus.optiputer.net',
+    aws_secret_key_id=secret,
+    aws_secret_access_key=access,
+    remote_name='jlehrer/massive_dataset_T.csv'
+)
 ```

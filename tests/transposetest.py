@@ -23,7 +23,6 @@ trans = Transpose(
     chunksize=10,
     save_chunks=True,
     quiet=True,
-    to_upload=True,
 )
 
 trans.compute()
