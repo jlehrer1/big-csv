@@ -23,20 +23,27 @@ trans = Transpose(
     chunksize=10,
     save_chunks=True,
     quiet=True,
+    to_upload=True,
 )
 
 trans.compute()
 print('Reading in transpose')
 transpose = pd.read_csv(os.path.join(here, 'test_T.csv'))
 
-# print(f'Transpose is')
-# print(transpose)
-
-# print('And original is')
-# print(rand)
-
 transpose.columns = pd.RangeIndex(0, len(transpose.columns))
-
 print('Shapes are', transpose.shape, rand.shape)
 
 print(f'Transposed == direct transpose: {transpose.equals(rand)}')
+
+with open(os.path.join(here, '..', 'credentials')) as f:
+    secret, access = f.readlines()
+
+secret, access = secret.rstrip(), access.rstrip()
+
+trans.upload(
+    bucket='braingeneersdev',
+    endpoint_url='https://s3.nautilus.optiputer.net',
+    aws_secret_key_id=secret,
+    aws_secret_access_key=access,
+    remote_name='jlehrer/TEST_TRANSPOSE.csv'
+)
