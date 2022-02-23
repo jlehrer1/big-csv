@@ -131,4 +131,5 @@ cifar-10*/
 lightning_logs*/
 tests/credentials
 credentials
-*.csv
+tests/*.csv
+tests/*.tsv
