@@ -42,6 +42,6 @@ tranpose.upload(
     endpoint_url='https://s3.nautilus.optiputer.net',
     aws_secret_key_id=secret,
     aws_secret_access_key=access,
-    remote_name='jlehrer/massive_dataset_T.csv'
+    remote_file_name='jlehrer/massive_dataset_T.csv'
 )
 ```
