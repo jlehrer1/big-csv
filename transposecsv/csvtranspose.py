@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import os 
 import boto3
 import pandas as pd 
@@ -9,6 +10,7 @@ def transpose_file(
     insep: str, 
     outsep: str,
     chunksize: int, 
+    chunkfolder: str,
     save_chunks: bool,
     quiet=bool, 
 ) -> None:
@@ -20,6 +22,7 @@ def transpose_file(
     outfile: Path to output file (transposed input file)
     sep: Separator for .csv, by default is ,
     chunksize: Number of lines per iteration
+    chunkfolder: Path to chunkfolder
     quiet: Boolean indicating whether to print progress or not 
 
     Returns:
@@ -30,17 +33,11 @@ def transpose_file(
     with open(file) as f:
         lines = len(f.readlines())
     
-    if not quiet: print(f'Number of lines to process is {lines}')
+    if not quiet: print(f'Number of lines to process is {lines - 1}')
 
     # Get just the outfile name for writing chunks
     outfile_split = outfile.split('/')
     outfile_name = outfile_split[-1][:-4] # takes /path/to/file.csv --> file 
-
-    if len(outfile_split) == 1: # as in there was no /path/to/file.csv, just file.csv
-        chunkfolder = f'chunks_{outfile_name}'
-    else:
-        outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
-        chunkfolder = os.path.join(outfile_path, f'chunks_{outfile_name}')
 
     if not os.path.isdir(chunkfolder):
         if not quiet: print(f'Making chunk folder {chunkfolder = }')
@@ -54,9 +51,10 @@ def transpose_file(
         df = df.T
 
         if not quiet: print(f'Writing chunk {l} to csv')
-        df.to_csv(os.path.join(chunkfolder, f'{outfile_name}_{l}.csv'), sep=outsep, index=False)
+        df.to_csv(os.path.join(chunkfolder, f'chunk_{outfile_name}_{l}.csv'), sep=outsep, index=False)
 
     if not quiet: print(f'Combining chunks from {chunkfolder} into {outfile}')
+
     os.system(
         f"paste -d ',' {chunkfolder}/* > {outfile}"
     )
@@ -88,6 +86,15 @@ class Transpose:
         self.save_chunks = save_chunks
         self.quiet = quiet
 
+        outfile_split = outfile.split('/')
+        outfile_name = outfile_split[-1][:-4] # takes /path/to/file.csv --> file 
+
+        if len(outfile_split) == 1: # as in there was no /path/to/file.csv, just file.csv
+            self.chunkfolder = f'chunks_{outfile_name}'
+        else:
+            outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
+            self.chunkfolder = os.path.join(outfile_path, f'chunks_{outfile_name}')
+
     def compute(self):
         transpose_file(
             file=self.file,
@@ -95,6 +102,7 @@ class Transpose:
             insep=self.insep,
             outsep=self.outsep,
             chunksize=self.chunksize,
+            chunkfolder=self.chunkfolder,
             save_chunks=self.save_chunks,
             quiet=self.quiet,
         )
@@ -104,13 +112,27 @@ class Transpose:
         endpoint_url: str,
         aws_secret_key_id: str,
         aws_secret_access_key: str,
-        remote_name: str=None,
+        remote_file_key: str=None,
+        remote_chunk_path: str=None, 
     ) -> None:
+        """
+        Uploads the chunks and/or transposed file to the given S3 bucket.
 
-        remote_name = (self.file if not remote_name else remote_name)
+        Parameters:
+        bucket: Bucket name
+        endpoint_url: S3 endpoint
+        aws_secret_key_id: AWS secret key for your account 
+        aws_secret_access_key: Specifies the secret key associated with the access key
+        remote_file_key: Optional, key to upload file to in S3. Must be complete path, including file name 
+        remote_chunk_path: Optional, key to upload chunks to in S3. Must be a folder-like path, where the chunks will be labeled as chunk_{outfile_name}_{l}.csv
 
-        if not self.quiet: print(f'Uploading {self.outfile} transposed to {remote_name}')
+        Returns:
+        None
+        """
 
+        if remote_chunk_path and not self.save_chunks: # if remote_chunk_path is not None and self.save_chunks=False, then we cannot upload!
+            raise ValueError('Error, Transpose class not initialized with save_chunks=True, so chunks have been deleted. Rerun with save_chunks=True, or call upload method with remote_chunk_path=None.')
+        
         # Defines upload function and uploades combined data after all chunks are generated
         s3 = boto3.resource(
             's3',
@@ -119,7 +141,21 @@ class Transpose:
             aws_secret_access_key=aws_secret_access_key,
         )
 
-        s3.Bucket(bucket).upload_file(
-            Filename=self.outfile,
-            Key=remote_name,
-        )
+        remote_file_key = (self.file if not remote_file_key else remote_file_key)
+
+        if remote_file_key:
+            if not self.quiet: print(f'Uploading {self.outfile} transposed to {remote_file_key}')
+            s3.Bucket(bucket).upload_file(
+                Filename=self.outfile,
+                Key=remote_file_key,
+            )
+
+        if remote_chunk_path:
+            if not self.quiet and remote_chunk_path: print(f'Uploading chunks to {remote_chunk_path}')
+            for file in os.listdir(self.chunkfolder):
+                if not self.quiet: print(f'Uploading {file}')
+                
+                s3.Bucket(bucket).upload_file(
+                    Filename=os.path.join(self.chunkfolder, file),
+                    Key=os.path.join(remote_chunk_path, file)
+                )

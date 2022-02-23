@@ -22,7 +22,7 @@ trans = Transpose(
     outfile=os.path.join(here, 'test_T.csv'),
     chunksize=10,
     save_chunks=True,
-    quiet=True,
+    quiet=False,
 )
 
 trans.compute()
@@ -30,7 +30,7 @@ print('Reading in transpose')
 transpose = pd.read_csv(os.path.join(here, 'test_T.csv'))
 
 transpose.columns = pd.RangeIndex(0, len(transpose.columns))
-print('Shapes are', transpose.shape, rand.shape)
+print(f'Shapes are {transpose.shape = }, {rand.shape = }')
 
 print(f'Transposed == direct transpose: {transpose.equals(rand)}')
 
@@ -44,5 +44,6 @@ trans.upload(
     endpoint_url='https://s3.nautilus.optiputer.net',
     aws_secret_key_id=secret,
     aws_secret_access_key=access,
-    remote_name='jlehrer/TEST_TRANSPOSE.csv'
+    remote_file_key='jlehrer/TEST_TRANSPOSE.csv',
+    remote_chunk_path='jlehrer/TEST_TRANSPOSE_CHUNKS'
 )

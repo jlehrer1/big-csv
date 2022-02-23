@@ -49,6 +49,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/jlehrer1/transpose-csv',
-    version='0.0.3',
+    version='0.0.5',
     zip_safe=False,
 )
