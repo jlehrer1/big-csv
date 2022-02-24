@@ -20,7 +20,8 @@ def transpose_file(
     Parameters:
     file: Path to input file 
     outfile: Path to output file (transposed input file)
-    sep: Separator for .csv, by default is ,
+    insep: Separator for input file,  default is ','
+    outsep: Separator for output file, default is ','
     chunksize: Number of lines per iteration
     chunkfolder: Path to chunkfolder
     quiet: Boolean indicating whether to print progress or not 
@@ -62,14 +63,14 @@ def transpose_file(
     if not save_chunks:
         if not quiet: print('Finished combining chunks, deleting chunks.')
         os.system(
-            f'rm -rf {chunkfolder}/*'
+            f"rm -rf {chunkfolder}/*"
         )
 
     if not quiet: print('Done.')
 
 class Transpose:
     def __init__(
-        self, 
+        self,
         file: str, 
         outfile: str, 
         insep: str=',', 
@@ -87,9 +88,9 @@ class Transpose:
         self.quiet = quiet
 
         outfile_split = outfile.split('/')
-        outfile_name = outfile_split[-1][:-4] # takes /path/to/file.csv --> file 
+        outfile_name = outfile_split[-1][:-4] #takes /path/to/file.csv --> file 
 
-        if len(outfile_split) == 1: # as in there was no /path/to/file.csv, just file.csv
+        if len(outfile_split) == 1: #as in there was no /path/to/file.csv, just file.csv
             self.chunkfolder = f'chunks_{outfile_name}'
         else:
             outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"

@@ -45,3 +45,22 @@ tranpose.upload(
     remote_file_name='jlehrer/massive_dataset_T.csv'
 )
 ```
+
+## Documentation
+1. `transposecsv.Transpose`  
+### Parameters:  
+`file`: Path to input file   
+`outfile`: Path to output file (transposed input file)  
+`sep=','`: Separator for .csv, by default is `,`
+`chunksize=400`: Number of lines per iteration  
+`chunkfolder=None`: Optional, Path to chunkfolder  
+`quiet=False`: Boolean indicating whether to print progress or not
+
+2. `transposecsv.Transpose.upload`  
+### Parameters:  
+`bucket`: Bucket name  
+`endpoint_url`: S3 endpoint  
+`aws_secret_key_id`: AWS secret key for your account   
+`aws_secret_access_key`: Specifies the secret key associated with the access key  
+`remote_file_key`: Optional, key to upload file to in S3. Must be complete path, including file name   
+`remote_chunk_path`: Optional, key to upload chunks to in S3. Must be a folder-like path, where the chunks will be labeled as chunk_{outfile_name}_{l}.csv  
