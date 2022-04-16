@@ -1,10 +1,11 @@
-from multiprocessing.sharedctypes import Value
 import os 
 import boto3
 import pandas as pd 
-from .transpose import transpose_file
+import anndata as an
+from scipy import csr_matrix 
+from typing import Any 
 
-def transpose_file(
+def transpose_csv(
     file: str, 
     outfile: str, 
     insep: str, 
@@ -68,7 +69,54 @@ def transpose_file(
 
     if not quiet: print('Done.')
 
-class Transpose:
+def to_h5ad(
+    file: str,
+    outfile: str,
+    sep: str,
+    sparsify: bool,
+    chunksize: int,
+    chunkfolder: str,
+    save_chunks: bool,
+    quiet: bool,
+    compression: str,
+    index_col: str,
+    lines: int,
+    dtype: Any,
+) -> None:
+
+    if lines is None:
+        with open(file) as f:
+            lines = len(f.readlines())
+        
+    num_chunks = lines // chunksize + int(lines % chunksize == 0)
+    if not quiet: print(f'Chunkifying .csv file with {num_chunks = }')
+    for df, l in zip(pd.read_csv(file, chunksize=chunksize, compression=compression, dtype=dtype, index_col=index_col, sep=sep), range(0, num_chunks + 1)):  
+        if not quiet: print(f'Writing {l = }/{num_chunks}')
+        df.to_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'))
+            
+    if not quiet: print('Reading in as h5ad')
+    adata = an.read_csv(os.path.join(chunkfolder, f'chunk_0.csv'))
+    for l in range(1, num_chunks + 1):
+        andf = an.read_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'))
+        adata = an.concat([adata, andf])
+        del andf # Remove from memory?
+    
+    # If we want to convert raw data to csr format 
+    if sparsify:
+        adata.X = csr_matrix(adata.X)
+        
+    if not quiet: print('Writing h5ad')
+    adata.write(outfile)
+    
+    if not save_chunks:
+        if not quiet: print('Deleting chunks')
+        for l in range(0, num_chunks + 1):
+            if not quiet: print(f'Deleting chunk {l = }')
+            os.remove(
+                os.path.join(chunkfolder, f'chunk_{l}.csv')
+            )
+
+class BigCSV:
     def __init__(
         self,
         file: str, 
@@ -78,6 +126,7 @@ class Transpose:
         chunksize: str=400, 
         save_chunks: bool=False,
         quiet: bool=False,
+        chunkfolder: str=None,
     ):
         self.file = file 
         self.outfile = outfile
@@ -86,6 +135,12 @@ class Transpose:
         self.chunksize = chunksize
         self.save_chunks = save_chunks
         self.quiet = quiet
+        self.chunkfolder = (
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), 'chunks') if chunkfolder is None else chunkfolder
+        )
+
+        if not os.path.isdir(self.chunkfolder):
+            os.makedirs(self.chunkfolder, exist_ok=True)
 
         outfile_split = outfile.split('/')
         outfile_name = outfile_split[-1][:-4] #takes /path/to/file.csv --> file 
@@ -96,18 +151,38 @@ class Transpose:
             outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
             self.chunkfolder = os.path.join(outfile_path, f'chunks_{outfile_name}')
 
-    def compute(self):
-        transpose_file(
-            file=self.file,
-            outfile=self.outfile,
-            insep=self.insep,
+    def transpose_csv(
+        self,
+        outfile: str=None,
+    ):
+        transpose_csv(
+            file=self.file, 
+            outfile=(outfile if outfile is not None else self.outfile), 
+            insep=self.insep, 
             outsep=self.outsep,
+            chunksize=self.chunksize, 
+            chunkfolder=self.chunkfolder,
+            save_chunks=self.save_chunks,
+            quiet=self.quiet, 
+        )
+
+    def to_h5ad(
+        self,
+        outfile: str=None,
+    ):
+        to_h5ad(
+            file=self.file,
+            outfile=(outfile if outfile is not None else self.outfile),
+            sep=self.insep,
             chunksize=self.chunksize,
             chunkfolder=self.chunkfolder,
             save_chunks=self.save_chunks,
             quiet=self.quiet,
-        )
-        
+        ) 
+
+    def to_hdf5(self):
+        raise NotImplementedError
+
     def upload(self, 
         bucket: str,
         endpoint_url: str,
@@ -116,19 +191,21 @@ class Transpose:
         remote_file_key: str=None,
         remote_chunk_path: str=None, 
     ) -> None:
-        """
-        Uploads the chunks and/or transposed file to the given S3 bucket.
+        """Uploads the chunks and/or transposed file to the given S3 bucket.
 
-        Parameters:
-        bucket: Bucket name
-        endpoint_url: S3 endpoint
-        aws_secret_key_id: AWS secret key for your account 
-        aws_secret_access_key: Specifies the secret key associated with the access key
-        remote_file_key: Optional, key to upload file to in S3. Must be complete path, including file name 
-        remote_chunk_path: Optional, key to upload chunks to in S3. Must be a folder-like path, where the chunks will be labeled as chunk_{outfile_name}_{l}.csv
-
-        Returns:
-        None
+        :param bucket: Bucket name
+        :type bucket: str
+        :param endpoint_url: S3 endpoint
+        :type endpoint_url: str
+        :param aws_secret_key_id: AWS secret key for your account
+        :type aws_secret_key_id: str
+        :param aws_secret_access_key: Specifies the secret key associated with the access key
+        :type aws_secret_access_key: str
+        :param remote_file_key: key to upload file to in S3. Must be complete path, including file name , defaults to None
+        :type remote_file_key: str, optional
+        :param remote_chunk_path: Optional, key to upload chunks to in S3. Must be a folder-like path, where the chunks will be labeled as chunk_{outfile_name}_{l}.csv, defaults to None
+        :type remote_chunk_path: str, optional
+        :raises ValueError: If chunks have been deleted but requested to be uploaded, then we have to error since there is nothing to upload.
         """
 
         if remote_chunk_path and not self.save_chunks: # if remote_chunk_path is not None and self.save_chunks=False, then we cannot upload!
@@ -147,7 +224,7 @@ class Transpose:
         if remote_file_key:
             if not self.quiet: print(f'Uploading {self.outfile} transposed to {remote_file_key}')
             s3.Bucket(bucket).upload_file(
-                Filename=self.outfile,
+                file=self.outfile,
                 Key=remote_file_key,
             )
 
@@ -157,6 +234,6 @@ class Transpose:
                 if not self.quiet: print(f'Uploading {file}')
                 
                 s3.Bucket(bucket).upload_file(
-                    Filename=os.path.join(self.chunkfolder, file),
+                    file=os.path.join(self.chunkfolder, file),
                     Key=os.path.join(remote_chunk_path, file)
                 )
