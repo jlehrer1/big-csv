@@ -1,5 +1,6 @@
-# transposecsv: A small Python library to transpose large csv files that can't fit in memory. 
+# bigcsv: A small Python library to manipulate large csv files that can't fit in memory. 
 
+## Transposition
 Suppose you have an `p x m` matrix where your original data is `m` points samples with `p` features, or in `m` points in `p` dimensional space. Then we want the column space to be the features, that is, we'd like to consider the `m x p` data matrix. This small library is for performing this calculation on arbitrarily large csv files.
 
 It works in the following way:
@@ -10,19 +11,21 @@ It works in the following way:
 
 This process outputs the `m x p` matrix, as desired. This is particularly useful for single-cell data, where expression matrices are often uploaded genewise, but you may want to work with machine learning models that learn cellwise :). 
 
+## Converting to h5ad 
+If data is purely numeric, it is much more efficient to store in in `h5ad` (readable by `AnnData`), which uses the amazing HDF5 format under-the-hood.
+
 ## Installation
 
-To install, run `pip install transposecsv`
+To install, run `pip install bigcsv`
 
 ## How to use  
-The transpose operation is contained in a lazily-loaded `Transpose` class, so the transpose operation isn't started on initialization. For example:
+All operations are method of the `BigCSV` class, which contains metadata information used to do all calculations.
 
 ```python
-from transposecsv import Transpose 
+from bigcsv import BigCSV
 
-transpose = Transpose(
-    file_name='massive_dataset.csv',
-    write_path='massive_dataset_T.csv',
+obj = BigCSV(
+    file='massive_dataset.csv',
     chunksize=400, # Number of rows to read in at each iteration
     # leave as default
     # insep=',', 
@@ -32,7 +35,10 @@ transpose = Transpose(
     # quiet=False,
 )
 
-transpose.compute()
+obj.to_h5ad(outfile='converted.h5ad')
+
+# Or maybe we want to keep as csv, but transpose it (in the case of non-numerical data)
+obj.transpose(outfile='dataset_T.csv')
 ```
 
 Then to upload to S3, we would run 

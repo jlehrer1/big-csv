@@ -2,7 +2,7 @@ import os
 import boto3
 import pandas as pd 
 import anndata as an
-from scipy import csr_matrix 
+from scipy.sparse import csr_matrix 
 from typing import Any 
 
 def transpose_csv(
@@ -82,6 +82,7 @@ def to_h5ad(
     index_col: str,
     lines: int,
     dtype: Any,
+    index: bool,
 ) -> None:
 
     if lines is None:
@@ -92,7 +93,7 @@ def to_h5ad(
     if not quiet: print(f'Chunkifying .csv file with {num_chunks = }')
     for df, l in zip(pd.read_csv(file, chunksize=chunksize, compression=compression, dtype=dtype, index_col=index_col, sep=sep), range(0, num_chunks + 1)):  
         if not quiet: print(f'Writing {l = }/{num_chunks}')
-        df.to_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'))
+        df.to_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'), index=index, header=None) # anndata doesn't need a header like Pandas does
             
     if not quiet: print('Reading in as h5ad')
     adata = an.read_csv(os.path.join(chunkfolder, f'chunk_0.csv'))
@@ -120,7 +121,7 @@ class BigCSV:
     def __init__(
         self,
         file: str, 
-        outfile: str, 
+        outfile: str=None, 
         insep: str=',', 
         outsep: str=',',
         chunksize: str=400, 
@@ -155,6 +156,9 @@ class BigCSV:
         self,
         outfile: str=None,
     ):
+        if outfile is None and self.outfile is None:
+            raise ValueError("Error, either self.outfile must not be None or outfile must not be None.")
+
         transpose_csv(
             file=self.file, 
             outfile=(outfile if outfile is not None else self.outfile), 
@@ -169,7 +173,16 @@ class BigCSV:
     def to_h5ad(
         self,
         outfile: str=None,
+        sparsify: bool=False,
+        compression: str='infer',
+        lines: int=None,
+        dtype: Any=None,
+        index_col: str=None,
+        index: bool=True,
     ):
+        if outfile is None and self.outfile is None:
+            raise ValueError("Error, either self.outfile must not be None or outfile must not be None.")
+
         to_h5ad(
             file=self.file,
             outfile=(outfile if outfile is not None else self.outfile),
@@ -178,6 +191,12 @@ class BigCSV:
             chunkfolder=self.chunkfolder,
             save_chunks=self.save_chunks,
             quiet=self.quiet,
+            sparsify=sparsify,
+            compression=compression,
+            lines=lines,
+            dtype=dtype,
+            index_col=index_col,
+            index=index,
         ) 
 
     def to_hdf5(self):
