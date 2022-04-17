@@ -43,7 +43,8 @@ obj.transpose(outfile='dataset_T.csv')
 
 Then to upload to S3, we would run 
 ```python
-tranpose.upload(
+obj.upload(
+    file='converted.h5ad',
     bucket='braingeneersdev',
     endpoint_url='https://s3.nautilus.optiputer.net',
     aws_secret_key_id=secret,
