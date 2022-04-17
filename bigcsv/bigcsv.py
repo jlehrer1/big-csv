@@ -256,3 +256,9 @@ class BigCSV:
                     file=os.path.join(self.chunkfolder, file),
                     Key=os.path.join(remote_chunk_path, file)
                 )
+
+    def __repr__(self) -> str:
+        print(f"file={self.file}, outfile={self.outfile}, chunksize={self.chunksize}")
+
+    def __str__(self) -> str:
+        return self.__repr__()
