@@ -136,21 +136,22 @@ class BigCSV:
         self.chunksize = chunksize
         self.save_chunks = save_chunks
         self.quiet = quiet
-        self.chunkfolder = (
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), 'chunks') if chunkfolder is None else chunkfolder
-        )
+        self.chunkfolder = chunkfolder
+
+        outfile_split = file.split('/')
+        self.outfile_name = outfile_split[-1][:-4] #takes /path/to/file.csv --> file 
+
+        if chunkfolder is None:
+            if not quiet: print('Chunkfolder not passed, generating...')
+            if len(outfile_split) == 1: #as in there was no /path/to/file.csv, just file.csv
+                self.chunkfolder = f'chunks_{self.outfile_name}'
+            else:
+                outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
+                self.chunkfolder = os.path.join(outfile_path, f'chunks_{self.outfile_name}')
 
         if not os.path.isdir(self.chunkfolder):
+            if not self.quiet: print(f"Creating chunkfolder {self.chunkfolder}")
             os.makedirs(self.chunkfolder, exist_ok=True)
-
-        outfile_split = outfile.split('/')
-        outfile_name = outfile_split[-1][:-4] #takes /path/to/file.csv --> file 
-
-        if len(outfile_split) == 1: #as in there was no /path/to/file.csv, just file.csv
-            self.chunkfolder = f'chunks_{outfile_name}'
-        else:
-            outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
-            self.chunkfolder = os.path.join(outfile_path, f'chunks_{outfile_name}')
 
     def transpose_csv(
         self,
@@ -258,7 +259,7 @@ class BigCSV:
                 )
 
     def __repr__(self) -> str:
-        print(f"file={self.file}, outfile={self.outfile}, chunksize={self.chunksize}")
+        return f"file={self.file}, outfile={self.outfile}, chunksize={self.chunksize}"
 
     def __str__(self) -> str:
         return self.__repr__()

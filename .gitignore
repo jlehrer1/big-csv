@@ -133,3 +133,4 @@ tests/credentials
 credentials
 tests/*.csv
 tests/*.tsv
+.DS_Store
