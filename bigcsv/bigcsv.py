@@ -2,6 +2,9 @@ import os
 import boto3
 import pandas as pd 
 import anndata as an
+import pathlib 
+import warnings 
+
 from scipy.sparse import csr_matrix 
 from typing import Any 
 
@@ -98,6 +101,7 @@ def to_h5ad(
     if not quiet: print('Reading in as h5ad')
     adata = an.read_csv(os.path.join(chunkfolder, f'chunk_0.csv'))
     for l in range(1, num_chunks + 1):
+        if not quiet: print(f'Converting {l = }/{num_chunks}')
         andf = an.read_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'))
         adata = an.concat([adata, andf])
         del andf # Remove from memory?
@@ -143,11 +147,7 @@ class BigCSV:
 
         if chunkfolder is None:
             if not quiet: print('Chunkfolder not passed, generating...')
-            if len(outfile_split) == 1: #as in there was no /path/to/file.csv, just file.csv
-                self.chunkfolder = f'chunks_{self.outfile_name}'
-            else:
-                outfile_path = f"/{os.path.join(*outfile.split('/')[:-1])}"
-                self.chunkfolder = os.path.join(outfile_path, f'chunks_{self.outfile_name}')
+            self.chunkfolder = pathlib.Path(file).stem 
 
         if not os.path.isdir(self.chunkfolder):
             if not self.quiet: print(f"Creating chunkfolder {self.chunkfolder}")
@@ -180,7 +180,10 @@ class BigCSV:
         dtype: Any=None,
         index_col: str=None,
         index: bool=True,
-    ):
+    ):  
+        if pathlib.Path(outfile).suffix != 'h5ad':
+            warnings.warn('Suffix of outfile is not .h5ad, although it is being converted to an h5ad.')
+
         if outfile is None and self.outfile is None:
             raise ValueError("Error, either self.outfile must not be None or outfile must not be None.")
 
