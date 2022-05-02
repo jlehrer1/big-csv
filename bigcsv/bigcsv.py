@@ -150,7 +150,7 @@ def experimental_to_h5ad(
 
     for chunk, data in zip(range(0, num_chunks + 1), chunkified):
         if not quiet: print(f'Working on chunk {chunk}/{num_chunks}')
-        
+
         if sparsify:
             df = an.AnnData(
                 X=csr_matrix(data.values),
@@ -164,7 +164,8 @@ def experimental_to_h5ad(
 
     print('Concatenating h5ad\'s')
     df = an.concat(anndatas)
-
+    df.var = data.var.reset_index(drop=True)
+    
     df.write_h5ad(outfile)
 
 class BigCSV:
