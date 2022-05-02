@@ -100,6 +100,7 @@ def to_h5ad(
             
     if not quiet: print('Reading in as h5ad')
     adata = an.read_csv(os.path.join(chunkfolder, f'chunk_0.csv'))
+    
     for l in range(1, num_chunks + 1):
         if not quiet: print(f'Converting {l = }/{num_chunks}')
         andf = an.read_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'))
@@ -120,6 +121,51 @@ def to_h5ad(
             os.remove(
                 os.path.join(chunkfolder, f'chunk_{l}.csv')
             )
+
+def experimental_to_h5ad(
+    file: str,
+    outfile: str,
+    sep: str,
+    sparsify: bool,
+    chunksize: int,
+    quiet: bool=False,
+    compression: str='infer',
+    index_col: str=None,
+    dtype: Any=None,
+):
+    chunkified = pd.read_csv(
+        file, 
+        chunksize=chunksize, 
+        index_col=index_col, 
+        compression=compression, 
+        dtype=dtype,
+        sep=sep,
+    )
+
+    with open(file) as f:
+        lines = len(f.readlines()) - 1
+
+    anndatas = []
+    num_chunks = lines // chunksize + int(lines % chunksize == 0)
+
+    for chunk, data in zip(range(0, num_chunks + 1), chunkified):
+        if not quiet: print(f'Working on chunk {chunk}/{num_chunks}')
+        
+        if sparsify:
+            df = an.AnnData(
+                X=csr_matrix(data.values),
+                obs=pd.DataFrame(data.index),
+                var=pd.DataFrame(data.columns),
+            )
+        else:
+            df = an.AnnData(data)
+
+        anndatas.append(df)
+
+    print('Concatenating h5ad\'s')
+    df = an.concat(anndatas)
+
+    df.write_h5ad(outfile)
 
 class BigCSV:
     def __init__(
@@ -187,7 +233,23 @@ class BigCSV:
         if outfile is None and self.outfile is None:
             raise ValueError("Error, either self.outfile must not be None or outfile must not be None.")
 
-        to_h5ad(
+        # to_h5ad(
+        #     file=self.file,
+        #     outfile=(outfile if outfile is not None else self.outfile),
+        #     sep=self.insep,
+        #     chunksize=self.chunksize,
+        #     chunkfolder=self.chunkfolder,
+        #     save_chunks=self.save_chunks,
+        #     quiet=self.quiet,
+        #     sparsify=sparsify,
+        #     compression=compression,
+        #     lines=lines,
+        #     dtype=dtype,
+        #     index_col=index_col,
+        #     index=index,
+        # ) 
+
+        experimental_to_h5ad(
             file=self.file,
             outfile=(outfile if outfile is not None else self.outfile),
             sep=self.insep,
@@ -201,12 +263,11 @@ class BigCSV:
             dtype=dtype,
             index_col=index_col,
             index=index,
-        ) 
+        )
 
-    def to_hdf5(self):
-        raise NotImplementedError
-
-    def upload(self, 
+    
+    def upload(
+        self, 
         bucket: str,
         endpoint_url: str,
         aws_secret_key_id: str,
