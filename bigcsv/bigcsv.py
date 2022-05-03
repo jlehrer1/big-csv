@@ -154,18 +154,20 @@ def experimental_to_h5ad(
         if sparsify:
             df = an.AnnData(
                 X=csr_matrix(data.values),
-                obs=pd.DataFrame(data.index),
-                var=pd.DataFrame(data.columns),
             )
+
+            df.var.index = data.columns.values 
+            df.obs.index = data.index.values
         else:
             df = an.AnnData(data)
 
         anndatas.append(df)
 
-    print('Concatenating h5ad\'s')
+    if not quiet: print('Concatenating h5ad\'s')
     df = an.concat(anndatas)
     df.var = data.var.reset_index(drop=True)
     
+    if not quiet: print('Writing h5ad to file')
     df.write_h5ad(outfile)
 
 class BigCSV:
