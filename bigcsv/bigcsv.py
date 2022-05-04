@@ -165,7 +165,7 @@ def experimental_to_h5ad(
 
     if not quiet: print('Concatenating h5ad\'s')
     df = an.concat(anndatas)
-    df.var = data.var.reset_index(drop=True)
+    df.var = df.var.reset_index(drop=True)
     
     if not quiet: print('Writing h5ad to file')
     df.write_h5ad(outfile)
@@ -229,28 +229,12 @@ class BigCSV:
         dtype: Any=None,
         index_col: str=None,
         index: bool=True,
-    ):  
+    ):
         if pathlib.Path(outfile).suffix != 'h5ad':
             warnings.warn('Suffix of outfile is not .h5ad, although it is being converted to an h5ad.')
 
         if outfile is None and self.outfile is None:
             raise ValueError("Error, either self.outfile must not be None or outfile must not be None.")
-
-        # to_h5ad(
-        #     file=self.file,
-        #     outfile=(outfile if outfile is not None else self.outfile),
-        #     sep=self.insep,
-        #     chunksize=self.chunksize,
-        #     chunkfolder=self.chunkfolder,
-        #     save_chunks=self.save_chunks,
-        #     quiet=self.quiet,
-        #     sparsify=sparsify,
-        #     compression=compression,
-        #     lines=lines,
-        #     dtype=dtype,
-        #     index_col=index_col,
-        #     index=index,
-        # ) 
 
         experimental_to_h5ad(
             file=self.file,
@@ -268,7 +252,6 @@ class BigCSV:
             index=index,
         )
 
-    
     def upload(
         self, 
         bucket: str,
