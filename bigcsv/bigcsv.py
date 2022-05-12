@@ -78,56 +78,6 @@ def to_h5ad(
     sep: str,
     sparsify: bool,
     chunksize: int,
-    chunkfolder: str,
-    save_chunks: bool,
-    quiet: bool,
-    compression: str,
-    index_col: str,
-    lines: int,
-    dtype: Any,
-    index: bool,
-) -> None:
-
-    if lines is None:
-        with open(file) as f:
-            lines = len(f.readlines())
-        
-    num_chunks = lines // chunksize + int(lines % chunksize == 0)
-    if not quiet: print(f'Chunkifying .csv file with {num_chunks = }')
-    for df, l in zip(pd.read_csv(file, chunksize=chunksize, compression=compression, dtype=dtype, index_col=index_col, sep=sep), range(0, num_chunks + 1)):  
-        if not quiet: print(f'Writing {l = }/{num_chunks}')
-        df.to_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'), index=index, header=None) # anndata doesn't need a header like Pandas does
-            
-    if not quiet: print('Reading in as h5ad')
-    adata = an.read_csv(os.path.join(chunkfolder, f'chunk_0.csv'))
-    
-    for l in range(1, num_chunks + 1):
-        if not quiet: print(f'Converting {l = }/{num_chunks}')
-        andf = an.read_csv(os.path.join(chunkfolder, f'chunk_{l}.csv'))
-        adata = an.concat([adata, andf])
-        del andf # Remove from memory?
-    
-    # If we want to convert raw data to csr format 
-    if sparsify:
-        adata.X = csr_matrix(adata.X)
-        
-    if not quiet: print('Writing h5ad')
-    adata.write(outfile)
-    
-    if not save_chunks:
-        if not quiet: print('Deleting chunks')
-        for l in range(0, num_chunks + 1):
-            if not quiet: print(f'Deleting chunk {l = }')
-            os.remove(
-                os.path.join(chunkfolder, f'chunk_{l}.csv')
-            )
-
-def experimental_to_h5ad(
-    file: str,
-    outfile: str,
-    sep: str,
-    sparsify: bool,
-    chunksize: int,
     quiet: bool=False,
     compression: str='infer',
     index_col: str=None,
@@ -155,7 +105,6 @@ def experimental_to_h5ad(
             df = an.AnnData(
                 X=csr_matrix(data.values),
             )
-
             df.var.index = data.columns.values 
             df.obs.index = data.index.values
         else:
@@ -165,7 +114,7 @@ def experimental_to_h5ad(
 
     if not quiet: print('Concatenating h5ad\'s')
     df = an.concat(anndatas)
-    df.var = df.var.reset_index(drop=True)
+    df.obs = df.obs.reset_index(drop=False)
     
     if not quiet: print('Writing h5ad to file')
     df.write_h5ad(outfile)
@@ -236,7 +185,7 @@ class BigCSV:
         if outfile is None and self.outfile is None:
             raise ValueError("Error, either self.outfile must not be None or outfile must not be None.")
 
-        experimental_to_h5ad(
+        to_h5ad(
             file=self.file,
             outfile=(outfile if outfile is not None else self.outfile),
             sep=self.insep,
