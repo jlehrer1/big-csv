@@ -4,6 +4,7 @@ import pandas as pd
 import anndata as an
 import pathlib 
 import warnings 
+warnings.simplefilter(action='ignore', category=FutureWarning) # ignore the anndata future warning, fairly unncessary
 
 from scipy.sparse import csr_matrix 
 from typing import Any 

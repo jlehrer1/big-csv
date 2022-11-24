@@ -10,6 +10,7 @@ requirements = [
     "numpy",
     "tqdm",
     "boto3",
+    "anndata",
 ]
 
 setup_requirements = requirements.copy()
